@@ -5,6 +5,9 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -31,7 +34,10 @@ public class MainActivity extends AppCompatActivity {
 
     private PlayerView mPlayerView;
     private SimpleExoPlayer mExoPlayer;
+    // 连续播放数据源
+    ConcatenatingMediaSource concatenatingMediaSource;
 
+    private Button mButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +48,20 @@ public class MainActivity extends AppCompatActivity {
         initPlayer();
 
         setListener();
+
+        mButton = findViewById(R.id.btn);
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                long currentPos =  mExoPlayer.getCurrentPosition();
+                Toast.makeText(MainActivity.this , " currentPos = " + currentPos, Toast.LENGTH_LONG).show();
+
+
+                concatenatingMediaSource.removeMediaSource(0);
+                concatenatingMediaSource.getSize();
+
+            }
+        });
     }
 
     private void initView() {
@@ -71,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         mediaSources[3] = factory.createMediaSource(Uri.parse(url2));
 
 
-        ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource(mediaSources);
+        concatenatingMediaSource = new ConcatenatingMediaSource(mediaSources);
         mExoPlayer.prepare(concatenatingMediaSource);
 
         mExoPlayer.setPlayWhenReady(true);
