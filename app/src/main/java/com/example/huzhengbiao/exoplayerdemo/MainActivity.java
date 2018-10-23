@@ -96,10 +96,11 @@ public class MainActivity extends AppCompatActivity {
 
 
         // ExoPlayer设置缓存？
-        File cacheFile = new File(getExternalCacheDir().getAbsolutePath(), "video");
-        SimpleCache simpleCache = new SimpleCache(cacheFile, new LeastRecentlyUsedCacheEvictor(512 * 1024 * 1024)); // 本地最多保存512M, 按照LRU原则删除老数据
-        // 设置单个数据源缓存的大小
-        CacheDataSourceFactory cachedDataSourceFactory = new CacheDataSourceFactory(simpleCache, dataSourceFactory, 0, 20*1024*1024);
+//        File cacheFile = new File(getExternalCacheDir().getAbsolutePath(), "video");
+//        SimpleCache simpleCache = new SimpleCache(cacheFile, new LeastRecentlyUsedCacheEvictor(512 * 1024 * 1024)); // 本地最多保存512M, 按照LRU原则删除老数据
+       // 设置单个数据源缓存的大小
+        CacheDataSourceFactory cachedDataSourceFactory =
+                new CacheDataSourceFactory(VideoCache.getInstance(this), dataSourceFactory, 0, 100*1024*1024);
         MediaSource[] mediaSources = new MediaSource[urls.length];
     //    设置可缓存的播放源 代表去播放的媒体资源， 如果有缓存的话会从换存中获取？
         MediaSource videoSource = new ExtractorMediaSource.Factory(cachedDataSourceFactory).createMediaSource(Uri.parse(urls[0]));
@@ -153,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d("debug", " --< error  = " + error.getCause().toString());
                 // 一些播放的错误信息： 比如没有网络请求权限， 没有联网，
+                Toast.makeText(MainActivity.this, "error = " + error.getCause().toString(), Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -176,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         mExoPlayer.release();
     }
 }
