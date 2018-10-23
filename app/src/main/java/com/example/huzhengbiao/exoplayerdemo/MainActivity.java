@@ -28,7 +28,12 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor;
+import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
+
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -68,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         mPlayerView = findViewById(R.id.player_view);
     }
 
+    private String[] urls = new String[]{"https://baobab.kaiyanapp.com/api/v1/playUrl?vid=132872&resourceType=video&editionType=default&source=aliyun&ptl=true",
+    "https://baobab.kaiyanapp.com/api/v1/playUrl?vid=132873&resourceType=video&editionType=default&source=aliyun&ptl=true"};
+
     private void initPlayer() {
         //
         TrackSelection.Factory adaptiveTrackSelectionFactory = new AdaptiveTrackSelection.Factory(new DefaultBandwidthMeter());
@@ -80,15 +88,24 @@ public class MainActivity extends AppCompatActivity {
         DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(
                 this, Util.getUserAgent(this, "yourApplicationName"), new DefaultBandwidthMeter());
         // 设置播放源
-        ExtractorMediaSource.Factory factory = new ExtractorMediaSource.Factory(dataSourceFactory);
-        MediaSource[] mediaSources = new MediaSource[4];
-        String url = "https://baobab.kaiyanapp.com/api/v1/playUrl?vid=132872&resourceType=video&editionType=default&source=aliyun&ptl=true";
+//        ExtractorMediaSource.Factory factory = new ExtractorMediaSource.Factory(dataSourceFactory);
+//        MediaSource[] mediaSources = new MediaSource[2];
+//        mediaSources[0] = factory.createMediaSource(Uri.parse(urls[0]));
+//        mediaSources[1] = factory.createMediaSource(Uri.parse(urls[1]));
 
-        String url2 = "http://uc.cdn.kaiyanapp.com/1490499356527_f752d403_1280x720.mp4?t=1540199953&k=c8500162978e24b8";
-        mediaSources[0] = factory.createMediaSource(Uri.parse(url));
-        mediaSources[1] = factory.createMediaSource(Uri.parse(url2));
-        mediaSources[2] = factory.createMediaSource(Uri.parse(url));
-        mediaSources[3] = factory.createMediaSource(Uri.parse(url2));
+
+
+        // ExoPlayer设置缓存？
+        File cacheFile = new File(getExternalCacheDir().getAbsolutePath(), "video");
+        SimpleCache simpleCache = new SimpleCache(cacheFile, new LeastRecentlyUsedCacheEvictor(512 * 1024 * 1024)); // 本地最多保存512M, 按照LRU原则删除老数据
+        // 设置单个数据源缓存的大小
+        CacheDataSourceFactory cachedDataSourceFactory = new CacheDataSourceFactory(simpleCache, dataSourceFactory, 0, 20*1024*1024);
+        MediaSource[] mediaSources = new MediaSource[urls.length];
+    //    设置可缓存的播放源 代表去播放的媒体资源， 如果有缓存的话会从换存中获取？
+        MediaSource videoSource = new ExtractorMediaSource.Factory(cachedDataSourceFactory).createMediaSource(Uri.parse(urls[0]));
+        mediaSources[0] = videoSource;
+        MediaSource cacheMediaSource = new ExtractorMediaSource.Factory(cachedDataSourceFactory).createMediaSource(Uri.parse(urls[1]));
+        mediaSources[1] = cacheMediaSource;
 
 
         concatenatingMediaSource = new ConcatenatingMediaSource(mediaSources);
@@ -96,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         mExoPlayer.setPlayWhenReady(true);
     }
+
 
 
     private void setListener() {
@@ -133,7 +151,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPlayerError(ExoPlaybackException error) {
 
-                Log.d("debug", " --< error  = " + error);
+                Log.d("debug", " --< error  = " + error.getCause().toString());
+                // 一些播放的错误信息： 比如没有网络请求权限， 没有联网，
             }
 
             @Override
